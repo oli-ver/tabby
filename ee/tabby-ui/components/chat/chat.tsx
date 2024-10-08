@@ -385,7 +385,7 @@ function ChatRenderer(
         message: userMessage.message + selectCodeSnippet,
         // If no id is provided, set a fallback id.
         id: userMessage.id ?? nanoid(),
-        // If a temporary user message draft exists, use it's selectContext and activeContext
+        // If a temporary user message draft exists, use its selectContext and activeContext
         selectContext: userMessageForEditTemp.current
           ? userMessageForEditTemp.current.selectContext
           : userMessage.selectContext,
