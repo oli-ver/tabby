@@ -164,7 +164,7 @@ function MainPanel() {
 
   return (
     <ScrollArea style={style} ref={scroller} onScroll={handleScroll}>
-      <header className="fixed top-0 right-0 z-10 flex h-16 items-center justify-end px-4 lg:px-10">
+      <header className="fixed right-0 top-0 z-10 flex h-16 items-center justify-end px-4 lg:px-10">
         <div className="flex items-center gap-x-6">
           <ClientOnly>
             <ThemeToggle />
@@ -175,7 +175,7 @@ function MainPanel() {
         </div>
       </header>
 
-      <main className="flex-col items-center justify-center overflow-auto pt-16 pb-8 lg:flex lg:pb-0">
+      <main className="flex-col items-center justify-center overflow-auto pb-8 pt-16 lg:flex lg:pb-0">
         <div className="mx-auto flex min-h-0 w-full flex-col items-center px-10 lg:max-w-4xl lg:px-0">
           <motion.div
             className="flex w-full flex-col items-center gap-6"
