@@ -1,7 +1,6 @@
-import { createContext, useContext, useMemo, useState } from 'react'
+import { createContext, forwardRef, useContext, useMemo, useState } from 'react'
 import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
-import { motion, Variants } from 'framer-motion'
 import moment from 'moment'
 import { useQuery } from 'urql'
 
@@ -10,30 +9,13 @@ import { graphql } from '@/lib/gql/generates'
 import { ContextSource, ListThreadsQuery } from '@/lib/gql/generates/graphql'
 import { Member, useAllMembers } from '@/lib/hooks/use-all-members'
 import { contextInfoQuery, listThreadMessages } from '@/lib/tabby/query'
-import { getTitleFromMessages } from '@/lib/utils'
+import { cn, getTitleFromMessages } from '@/lib/utils'
 import { IconMessagesSquare, IconSpinner } from '@/components/ui/icons'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { LoadMoreIndicator } from '@/components/load-more-indicator'
 import LoadingWrapper from '@/components/loading-wrapper'
 import { UserAvatar } from '@/components/user-avatar'
-
-import { AnimationWrapper } from './animation-wrapper'
-
-const threadItemVariants: Variants = {
-  initial: {
-    opacity: 0,
-    y: 40
-  },
-  onscreen: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      ease: 'easeOut'
-    }
-  }
-}
 
 interface ThreadFeedsProps {
   className?: string
@@ -90,70 +72,54 @@ const listThreads = graphql(/* GraphQL */ `
   }
 `)
 
-export function ThreadFeeds({
-  className,
-  onNavigateToThread
-}: ThreadFeedsProps) {
-  const [allUsers, fetchingUsers] = useAllMembers()
-  const [beforeCursor, setBeforeCursor] = useState<string | undefined>()
-  const [{ data, fetching }] = useQuery({
-    query: listThreads,
-    variables: {
-      last: PAGE_SIZE,
-      before: beforeCursor,
-      isEphemeral: false
+export const ThreadFeeds = forwardRef<HTMLDivElement, ThreadFeedsProps>(
+  ({ onNavigateToThread, className }, ref) => {
+    const [allUsers, fetchingUsers] = useAllMembers()
+    const [beforeCursor, setBeforeCursor] = useState<string | undefined>()
+    const [{ data, fetching }] = useQuery({
+      query: listThreads,
+      variables: {
+        last: PAGE_SIZE,
+        before: beforeCursor,
+        isEphemeral: false
+      }
+    })
+
+    const [{ data: contextInfoData, fetching: fetchingSources }] = useQuery({
+      query: contextInfoQuery
+    })
+
+    const threads = useMemo(() => {
+      const _threads = data?.threads?.edges
+      if (!_threads?.length) return []
+
+      return _threads.slice().reverse()
+    }, [data?.threads?.edges])
+
+    const pageInfo = data?.threads.pageInfo
+
+    const loadMore = () => {
+      if (pageInfo?.startCursor) {
+        setBeforeCursor(pageInfo.startCursor)
+      }
     }
-  })
 
-  const [{ data: contextInfoData, fetching: fetchingSources }] = useQuery({
-    query: contextInfoQuery
-  })
-
-  const threads = useMemo(() => {
-    const _threads = data?.threads?.edges
-    if (!_threads?.length) return []
-
-    return _threads.slice().reverse()
-  }, [data?.threads?.edges])
-
-  const pageInfo = data?.threads.pageInfo
-
-  const loadMore = () => {
-    if (pageInfo?.startCursor) {
-      setBeforeCursor(pageInfo.startCursor)
-    }
-  }
-
-  return (
-    <ThreadFeedsContext.Provider
-      value={{
-        allUsers,
-        fetchingUsers,
-        sources: contextInfoData?.contextInfo.sources,
-        fetchingSources,
-        onNavigateToThread
-      }}
-    >
-      <div className="w-full">
-        <AnimationWrapper delay={0.3} style={{ width: '100%' }}>
+    return (
+      <ThreadFeedsContext.Provider
+        value={{
+          allUsers,
+          fetchingUsers,
+          sources: contextInfoData?.contextInfo.sources,
+          fetchingSources,
+          onNavigateToThread
+        }}
+      >
+        <div className={cn('w-full', className)} ref={ref}>
           <div className="mb-2.5 w-full text-lg font-semibold">
             Recent Activities
           </div>
           <Separator className="mb-4 w-full" />
-          <motion.div
-            initial="initial"
-            whileInView="onscreen"
-            viewport={{
-              margin: '0px 0px -140px 0px',
-              once: true
-            }}
-            transition={{
-              delay: 0.5,
-              delayChildren: 0.3,
-              staggerChildren: 0.2
-            }}
-            style={{ width: '100%', paddingBottom: '1rem' }}
-          >
+          <div className="w-full pb-4">
             <LoadingWrapper
               loading={fetching || fetchingUsers}
               fallback={
@@ -185,12 +151,13 @@ export function ThreadFeeds({
                 </LoadMoreIndicator>
               )}
             </LoadingWrapper>
-          </motion.div>
-        </AnimationWrapper>
-      </div>
-    </ThreadFeedsContext.Provider>
-  )
-}
+          </div>
+        </div>
+      </ThreadFeedsContext.Provider>
+    )
+  }
+)
+ThreadFeeds.displayName = 'ThreadFeeds'
 
 interface ThreadItemProps {
   data: ListThreadsQuery['threads']['edges'][0]

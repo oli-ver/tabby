@@ -3,6 +3,7 @@
 import { useSearchParams } from 'next/navigation'
 import { useWindowSize } from '@uidotdev/usehooks'
 import { eachDayOfInterval } from 'date-fns'
+import { motion } from 'framer-motion'
 import moment from 'moment'
 import ReactActivityCalendar from 'react-activity-calendar'
 import seedrandom from 'seedrandom'
@@ -18,8 +19,8 @@ import { useMe } from '@/lib/hooks/use-me'
 import { useIsDemoMode } from '@/lib/hooks/use-server-info'
 import { queryDailyStats, queryDailyStatsInPastYear } from '@/lib/tabby/query'
 
-import { AnimationWrapper } from './animation-wrapper'
 import { CompletionCharts } from './completion-charts'
+import { cardVariants } from './constants'
 
 const DATE_RANGE = 6
 
@@ -168,21 +169,16 @@ export default function Stats() {
 
   return (
     <>
-      <AnimationWrapper
-        viewport={{
-          margin: '-140px 0px 0px 0px'
-        }}
-        style={{ width: '100%' }}
-        delay={0.1}
+      <motion.div
+        className="rounded-2xl border px-[1.125rem] py-4 w-full"
+        variants={cardVariants}
       >
-        <div className="rounded-2xl border px-[1.125rem] py-4">
-          <div className="mb-3 text-base">
-            <span className="font-semibold">{lastYearActivities}</span>{' '}
-            activities in the past year
-          </div>
-          <ActivityCalendar data={activities} />
+        <div className="mb-3 text-base">
+          <span className="font-semibold">{lastYearActivities}</span> activities
+          in the past year
         </div>
-      </AnimationWrapper>
+        <ActivityCalendar data={activities} />
+      </motion.div>
       <CompletionCharts
         dailyStats={dailyStats}
         from={moment().subtract(DATE_RANGE, 'day').toDate()}

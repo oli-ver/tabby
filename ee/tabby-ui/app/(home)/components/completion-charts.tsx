@@ -1,6 +1,7 @@
 'use client'
 
 import { eachDayOfInterval } from 'date-fns'
+import { motion } from 'framer-motion'
 import { sum } from 'lodash-es'
 import moment from 'moment'
 import numeral from 'numeral'
@@ -17,7 +18,7 @@ import { DailyStatsQuery } from '@/lib/gql/generates/graphql'
 import { useCurrentTheme } from '@/lib/hooks/use-current-theme'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-import { AnimationWrapper } from './animation-wrapper'
+import { cardVariants } from './constants'
 
 function LineTooltip({
   active,
@@ -156,13 +157,7 @@ export function CompletionCharts({
 
   return (
     <div className="flex w-full flex-col items-center justify-center space-y-5 md:flex-row md:space-x-4 md:space-y-0 xl:justify-start">
-      <AnimationWrapper
-        viewport={{
-          margin: '-140px 0px 0px 0px'
-        }}
-        delay={0.15}
-        className="flex-1 self-stretch"
-      >
+      <motion.div className="flex-1 self-stretch" variants={cardVariants}>
         <Card className="flex flex-col justify-between self-stretch rounded-2xl bg-transparent pb-4">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
             <CardTitle className="text-base font-medium tracking-normal">
@@ -195,15 +190,9 @@ export function CompletionCharts({
             </LineChart>
           </ResponsiveContainer>
         </Card>
-      </AnimationWrapper>
+      </motion.div>
 
-      <AnimationWrapper
-        viewport={{
-          margin: '-140px 0px 0px 0px'
-        }}
-        delay={0.2}
-        className="flex-1 self-stretch"
-      >
+      <motion.div className="flex-1 self-stretch" variants={cardVariants}>
         <Card className="flex flex-col justify-between self-stretch bg-transparent pb-4">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
             <CardTitle className="text-base font-medium tracking-normal">
@@ -247,14 +236,8 @@ export function CompletionCharts({
             </BarChart>
           </ResponsiveContainer>
         </Card>
-      </AnimationWrapper>
-      <AnimationWrapper
-        viewport={{
-          margin: '-140px 0px 0px 0px'
-        }}
-        delay={0.25}
-        className="flex-1 self-stretch"
-      >
+      </motion.div>
+      <motion.div className="flex-1 self-stretch" variants={cardVariants}>
         <Card className="flex flex-col justify-between self-stretch bg-transparent pb-4">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
             <CardTitle className="text-base font-medium tracking-normal">
@@ -298,7 +281,7 @@ export function CompletionCharts({
             </BarChart>
           </ResponsiveContainer>
         </Card>
-      </AnimationWrapper>
+      </motion.div>
     </div>
   )
 }

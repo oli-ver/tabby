@@ -1,9 +1,17 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import {
+  UIEventHandler,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState
+} from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import tabbyUrl from '@/assets/logo-dark.png'
+import { motion, useAnimationControls } from 'framer-motion'
+import { useInView } from 'react-intersection-observer'
 import { useQuery } from 'urql'
 
 import { SESSION_STORAGE_KEY } from '@/lib/constants'
@@ -11,6 +19,7 @@ import { useHealth } from '@/lib/hooks/use-health'
 import { useMe } from '@/lib/hooks/use-me'
 import { useIsChatEnabled } from '@/lib/hooks/use-server-info'
 import { useStore } from '@/lib/hooks/use-store'
+import { useThrottleCallback } from '@/lib/hooks/use-throttle'
 import {
   clearHomeScrollPosition,
   setHomeScrollPosition,
@@ -28,20 +37,27 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { MyAvatar } from '@/components/user-avatar'
 import UserPanel from '@/components/user-panel'
 
-import { AnimationWrapper } from './components/animation-wrapper'
+import { cardVariants } from './components/constants'
 import Stats from './components/stats'
 import { ThreadFeeds } from './components/thread-feeds'
 
+const SCROLL_THRESHOLD = 5
+
 function MainPanel() {
-  const resettingScroller = useRef(false)
-  const scroller = useRef<HTMLDivElement>(null)
   const { data: healthInfo } = useHealth()
   const [{ data }] = useMe()
   const isChatEnabled = useIsChatEnabled()
+  const disableScroll = useRef(false)
   const [isShowDemoBanner] = useShowDemoBanner()
-  const elementRef = useRef<HTMLDivElement | null>(null)
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const resettingScrollPosition = useRef(false)
+  const scroller = useRef<HTMLDivElement>(null)
+  const lastScrollTop = useRef(0)
+  const activitiesRef = useRef<HTMLDivElement>(null)
+
+  const animationControl = useAnimationControls()
+
   const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery({
     query: contextInfoQuery
   })
@@ -53,7 +69,7 @@ function MainPanel() {
   }, [router])
 
   useLayoutEffect(() => {
-    const resetScroll = () => {
+    const resetScrollPosition = () => {
       if (scrollY) {
         setTimeout(() => {
           scroller.current?.scrollTo({
@@ -64,12 +80,10 @@ function MainPanel() {
       }
     }
 
-    if (resettingScroller.current) return
-    resetScroll()
-    resettingScroller.current = true
+    if (resettingScrollPosition.current) return
+    resetScrollPosition()
+    resettingScrollPosition.current = true
   }, [])
-
-  if (!healthInfo || !data?.me) return <></>
 
   const onSearch = (question: string, ctx?: ThreadRunContexts) => {
     setIsLoading(true)
@@ -81,12 +95,75 @@ function MainPanel() {
     router.push('/search')
   }
 
+  const throttledScrollHandler = useThrottleCallback(() => {
+    if (!scroller.current || !activitiesRef.current || disableScroll.current) {
+      return
+    }
+
+    const { scrollTop: currentScrollTop, clientHeight } = scroller.current
+    const offsetTop = activitiesRef.current.offsetTop
+    const isScrollingDown = currentScrollTop > lastScrollTop.current
+    const scrollDifference = currentScrollTop - lastScrollTop.current
+
+    lastScrollTop.current = currentScrollTop
+    if (Math.abs(scrollDifference) <= SCROLL_THRESHOLD) return
+
+    if (
+      isScrollingDown &&
+      currentScrollTop < offsetTop &&
+      currentScrollTop + clientHeight - offsetTop > 100
+    ) {
+      disableScroll.current = true
+
+      // scroll to threads
+      disableScroll.current = true
+      animationControl.start('hidden')
+      scroller.current?.scrollTo({
+        top: offsetTop,
+        behavior: 'smooth'
+      })
+
+      setTimeout(() => {
+        disableScroll.current = false
+      }, 1000)
+    }
+  }, 50)
+
+  const [ref, isInView] = useInView({
+    threshold: 0.1
+  })
+
+  const handleScroll: UIEventHandler<HTMLDivElement> = e => {
+    if (disableScroll.current) {
+      e.preventDefault()
+      return
+    }
+    throttledScrollHandler.run()
+  }
+
+  useEffect(() => {
+    if (isInView) {
+      animationControl.stop()
+      animationControl.start('onscreen')
+    }
+  }, [isInView])
+
+  useEffect(() => {
+    disableScroll.current = false
+
+    return () => {
+      disableScroll.current = false
+    }
+  }, [])
+
   const style = isShowDemoBanner
     ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
     : { height: '100vh' }
 
+  if (!healthInfo || !data?.me) return <></>
+
   return (
-    <ScrollArea style={style} ref={scroller}>
+    <ScrollArea style={style} ref={scroller} onScroll={handleScroll}>
       <header className="fixed top-0 right-0 z-10 flex h-16 items-center justify-end px-4 lg:px-10">
         <div className="flex items-center gap-x-6">
           <ClientOnly>
@@ -98,46 +175,52 @@ function MainPanel() {
         </div>
       </header>
 
-      <main
-        className="flex-col items-center justify-center lg:flex pt-16"
-        ref={elementRef}
-      >
-        <div className="mx-auto flex w-full flex-col items-center gap-6 px-10 lg:-mt-[2vh] lg:max-w-4xl lg:px-0">
-          <AnimationWrapper
-            viewport={{
-              margin: '-120px 0px 0px 0px'
+      <main className="flex-col items-center justify-center overflow-auto pt-16 pb-8 lg:flex lg:pb-0">
+        <div className="mx-auto flex min-h-0 w-full flex-col items-center px-10 lg:max-w-4xl lg:px-0">
+          <motion.div
+            className="flex w-full flex-col items-center gap-6"
+            initial="initial"
+            // whileInView='onscreen'
+            animate={animationControl}
+            transition={{
+              staggerChildren: 0.05
             }}
+            viewport={{
+              amount: 'some'
+            }}
+            ref={ref}
           >
-            <Image
-              src={tabbyUrl}
-              alt="logo"
-              width={192}
-              className={cn('mt-4 invert dark:invert-0', {
-                'mb-4': isChatEnabled,
-                'mb-2': !isChatEnabled
-              })}
-            />
-          </AnimationWrapper>
-          {isChatEnabled && (
-            <AnimationWrapper
-              viewport={{ margin: '-140px 0px 0px 0px' }}
-              style={{ width: '100%' }}
-              delay={0.05}
-            >
-              <TextAreaSearch
-                onSearch={onSearch}
-                showBetaBadge
-                autoFocus
-                loadingWithSpinning
-                isLoading={isLoading}
-                cleanAfterSearch={false}
-                contextInfo={contextInfoData?.contextInfo}
-                fetchingContextInfo={fetchingContextInfo}
+            <motion.div variants={cardVariants}>
+              <Image
+                src={tabbyUrl}
+                alt="logo"
+                width={192}
+                className={cn('mt-4 invert dark:invert-0', {
+                  'mb-4': isChatEnabled,
+                  'mb-2': !isChatEnabled
+                })}
               />
-            </AnimationWrapper>
-          )}
-          <Stats />
+            </motion.div>
+            <motion.div variants={cardVariants} className="w-full">
+              {isChatEnabled && (
+                <TextAreaSearch
+                  onSearch={onSearch}
+                  showBetaBadge
+                  autoFocus
+                  loadingWithSpinning
+                  isLoading={isLoading}
+                  cleanAfterSearch={false}
+                  contextInfo={contextInfoData?.contextInfo}
+                  fetchingContextInfo={fetchingContextInfo}
+                />
+              )}
+            </motion.div>
+            <Stats />
+          </motion.div>
+
           <ThreadFeeds
+            className="pt-6"
+            ref={activitiesRef}
             onNavigateToThread={() => {
               if (!scroller.current) return
               setHomeScrollPosition(scroller.current.scrollTop)
