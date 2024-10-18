@@ -105,28 +105,46 @@ function MainPanel() {
     const isScrollingDown = currentScrollTop > lastScrollTop.current
     const scrollDifference = currentScrollTop - lastScrollTop.current
 
-    lastScrollTop.current = currentScrollTop
-    if (Math.abs(scrollDifference) <= SCROLL_THRESHOLD) return
-
-    if (
-      isScrollingDown &&
-      currentScrollTop < offsetTop &&
-      currentScrollTop + clientHeight - offsetTop > 100
-    ) {
-      disableScroll.current = true
-
-      // scroll to threads
-      disableScroll.current = true
-      animationControl.start('hidden')
-      scroller.current?.scrollTo({
-        top: offsetTop,
-        behavior: 'smooth'
-      })
-
-      setTimeout(() => {
-        disableScroll.current = false
-      }, 1000)
+    if (isScrollingDown) {
+      if (currentScrollTop > 0 && currentScrollTop < offsetTop) {
+        animationControl.start('hidden')
+        scroller.current?.scrollTo({
+          top: offsetTop,
+          behavior: 'smooth'
+        })
+      }
+    } else {
+      if (currentScrollTop <= offsetTop + 200) {
+        scroller.current?.scrollTo({
+          top: 0,
+          behavior:'smooth'
+        })
+      }
     }
+
+    lastScrollTop.current = currentScrollTop
+    
+    // if (Math.abs(scrollDifference) <= SCROLL_THRESHOLD) return
+
+    // if (
+    //   isScrollingDown &&
+    //   currentScrollTop < offsetTop &&
+    //   currentScrollTop + clientHeight - offsetTop > 100
+    // ) {
+    //   disableScroll.current = true
+
+    //   // scroll to threads
+    //   disableScroll.current = true
+    //   animationControl.start('hidden')
+    //   scroller.current?.scrollTo({
+    //     top: offsetTop,
+    //     behavior: 'smooth'
+    //   })
+
+    //   setTimeout(() => {
+    //     disableScroll.current = false
+    //   }, 1000)
+    // }
   }, 50)
 
   const [ref, isInView] = useInView({

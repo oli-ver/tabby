@@ -14,7 +14,7 @@ export const cardVariants: Variants = {
     opacity: 0,
     transition: {
       ease: 'easeOut',
-      duration: 0.1
+      duration: 0.05
     },
     transitionEnd: {
       y: 24
