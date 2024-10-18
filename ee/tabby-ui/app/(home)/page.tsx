@@ -62,7 +62,7 @@ function MainPanel() {
           { y: 0, opacity: 1 },
           {
             ease: 'easeOut',
-            delay: stagger(0.1),
+            delay: stagger(0.05),
             duration: 0.5
           }
         )
@@ -114,7 +114,7 @@ function MainPanel() {
   const reenableWheelScrolling = () => {
     setTimeout(() => {
       disableWheel.current = false
-    }, 500)
+    }, 1000)
   }
 
   const throttledScrollHandler = useThrottleCallback(
