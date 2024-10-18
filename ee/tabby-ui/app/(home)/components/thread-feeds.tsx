@@ -119,7 +119,7 @@ export const ThreadFeeds = forwardRef<HTMLDivElement, ThreadFeedsProps>(
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{
-            delay: 1
+            delay: 0.6
           }}
           className="mt-3 w-full pt-3"
           ref={ref}
