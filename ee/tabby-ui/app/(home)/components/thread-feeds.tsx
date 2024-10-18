@@ -121,7 +121,7 @@ export const ThreadFeeds = forwardRef<HTMLDivElement, ThreadFeedsProps>(
           transition={{
             delay: 1
           }}
-          className="w-full pt-3 mt-3"
+          className="mt-3 w-full pt-3"
           ref={ref}
         >
           <LoadingWrapper
