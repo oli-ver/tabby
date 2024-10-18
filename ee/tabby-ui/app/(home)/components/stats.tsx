@@ -170,7 +170,7 @@ export default function Stats() {
   return (
     <>
       <motion.div
-        className="w-full rounded-2xl border px-[1.125rem] py-4"
+        className="home-motion-card w-full rounded-2xl border px-[1.125rem] py-4"
         variants={cardVariants}
       >
         <div className="mb-3 text-base">

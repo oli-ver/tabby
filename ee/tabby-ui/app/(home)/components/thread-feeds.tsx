@@ -1,6 +1,7 @@
 import { createContext, forwardRef, useContext, useMemo, useState } from 'react'
 import Link from 'next/link'
 import slugify from '@sindresorhus/slugify'
+import { motion } from 'framer-motion'
 import moment from 'moment'
 import { useQuery } from 'urql'
 
@@ -114,45 +115,51 @@ export const ThreadFeeds = forwardRef<HTMLDivElement, ThreadFeedsProps>(
           onNavigateToThread
         }}
       >
-        <div className={cn('w-full', className)} ref={ref}>
-          <div className="mb-2.5 w-full text-lg font-semibold">
-            Recent Activities
-          </div>
-          <Separator className="mb-4 w-full" />
-          <div className="w-full pb-4">
-            <LoadingWrapper
-              loading={fetching || fetchingUsers}
-              fallback={
-                <div className="flex justify-center">
-                  <IconSpinner className="h-8 w-8" />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{
+            delay: 1
+          }}
+          className="w-full pt-3 mt-3"
+          ref={ref}
+        >
+          <LoadingWrapper
+            loading={fetching || fetchingUsers}
+            fallback={
+              <div className="flex justify-center">
+                <IconSpinner className="h-8 w-8" />
+              </div>
+            }
+          >
+            {!!threads.length && (
+              <div className={cn('w-full', className)}>
+                <div className="mb-2.5 w-full text-lg font-semibold">
+                  Recent Activities
                 </div>
-              }
-            >
-              <div className="flex flex-col gap-3 text-sm">
-                {threads?.length ? (
-                  <>
-                    {threads.map((t, idx) => {
+                <Separator className="mb-4 w-full" />
+                <div className="w-full pb-4">
+                  <div className="flex flex-col gap-3 text-sm">
+                    {threads.map(t => {
                       return <ThreadItem data={t} key={t.node.id} />
                     })}
-                  </>
-                ) : (
-                  <div className="text-center text-base">No shared threads</div>
-                )}
-              </div>
-              {!!pageInfo?.hasPreviousPage && (
-                <LoadMoreIndicator
-                  onLoad={loadMore}
-                  isFetching={fetching}
-                  intersectionOptions={{ rootMargin: '0px 0px 200px 0px' }}
-                >
-                  <div className="mt-8 flex justify-center">
-                    <IconSpinner className="h-8 w-8" />
                   </div>
-                </LoadMoreIndicator>
-              )}
-            </LoadingWrapper>
-          </div>
-        </div>
+                  {!!pageInfo?.hasPreviousPage && (
+                    <LoadMoreIndicator
+                      onLoad={loadMore}
+                      isFetching={fetching}
+                      intersectionOptions={{ rootMargin: '0px 0px 200px 0px' }}
+                    >
+                      <div className="mt-8 flex justify-center">
+                        <IconSpinner className="h-8 w-8" />
+                      </div>
+                    </LoadMoreIndicator>
+                  )}
+                </div>
+              </div>
+            )}
+          </LoadingWrapper>
+        </motion.div>
       </ThreadFeedsContext.Provider>
     )
   }

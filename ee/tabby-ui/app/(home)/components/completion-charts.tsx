@@ -157,7 +157,10 @@ export function CompletionCharts({
 
   return (
     <div className="flex w-full flex-col items-center justify-center space-y-5 md:flex-row md:space-x-4 md:space-y-0 xl:justify-start">
-      <motion.div className="flex-1 self-stretch" variants={cardVariants}>
+      <motion.div
+        className="home-motion-card flex-1 self-stretch"
+        variants={cardVariants}
+      >
         <Card className="flex flex-col justify-between self-stretch rounded-2xl bg-transparent pb-4">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
             <CardTitle className="text-base font-medium tracking-normal">
@@ -192,7 +195,10 @@ export function CompletionCharts({
         </Card>
       </motion.div>
 
-      <motion.div className="flex-1 self-stretch" variants={cardVariants}>
+      <motion.div
+        className="home-motion-card flex-1 self-stretch"
+        variants={cardVariants}
+      >
         <Card className="flex flex-col justify-between self-stretch bg-transparent pb-4">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
             <CardTitle className="text-base font-medium tracking-normal">
@@ -237,7 +243,10 @@ export function CompletionCharts({
           </ResponsiveContainer>
         </Card>
       </motion.div>
-      <motion.div className="flex-1 self-stretch" variants={cardVariants}>
+      <motion.div
+        className="home-motion-card flex-1 self-stretch"
+        variants={cardVariants}
+      >
         <Card className="flex flex-col justify-between self-stretch bg-transparent pb-4">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pb-1 pt-4">
             <CardTitle className="text-base font-medium tracking-normal">

@@ -1,16 +1,10 @@
 'use client'
 
-import {
-  UIEventHandler,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState
-} from 'react'
+import { UIEvent, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import tabbyUrl from '@/assets/logo-dark.png'
-import { motion, useAnimationControls } from 'framer-motion'
+import { motion, stagger, useAnimate } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { useQuery } from 'urql'
 
@@ -41,13 +35,13 @@ import { cardVariants } from './components/constants'
 import Stats from './components/stats'
 import { ThreadFeeds } from './components/thread-feeds'
 
-const SCROLL_THRESHOLD = 5
+const MOTION_CARD_SELEDTOR = '.home-motion-card'
 
 function MainPanel() {
   const { data: healthInfo } = useHealth()
   const [{ data }] = useMe()
   const isChatEnabled = useIsChatEnabled()
-  const disableScroll = useRef(false)
+  const disableWheel = useRef(false)
   const [isShowDemoBanner] = useShowDemoBanner()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
@@ -55,8 +49,26 @@ function MainPanel() {
   const scroller = useRef<HTMLDivElement>(null)
   const lastScrollTop = useRef(0)
   const activitiesRef = useRef<HTMLDivElement>(null)
+  const [scope, animate] = useAnimate()
+  const [ref, isInView] = useInView({
+    threshold: 0.1
+  })
 
-  const animationControl = useAnimationControls()
+  useEffect(() => {
+    if (isInView) {
+      setTimeout(() => {
+        animate(
+          MOTION_CARD_SELEDTOR,
+          { y: 0, opacity: 1 },
+          {
+            ease: 'easeOut',
+            delay: stagger(0.1),
+            duration: 0.5
+          }
+        )
+      }, 100)
+    }
+  }, [isInView])
 
   const [{ data: contextInfoData, fetching: fetchingContextInfo }] = useQuery({
     query: contextInfoQuery
@@ -95,90 +107,98 @@ function MainPanel() {
     router.push('/search')
   }
 
-  const throttledScrollHandler = useThrottleCallback(() => {
-    if (!scroller.current || !activitiesRef.current || disableScroll.current) {
-      return
-    }
-
-    const { scrollTop: currentScrollTop, clientHeight } = scroller.current
-    const offsetTop = activitiesRef.current.offsetTop
-    const isScrollingDown = currentScrollTop > lastScrollTop.current
-    const scrollDifference = currentScrollTop - lastScrollTop.current
-
-    if (isScrollingDown) {
-      if (currentScrollTop > 0 && currentScrollTop < offsetTop) {
-        animationControl.start('hidden')
-        scroller.current?.scrollTo({
-          top: offsetTop,
-          behavior: 'smooth'
-        })
-      }
-    } else {
-      if (currentScrollTop <= offsetTop + 200) {
-        scroller.current?.scrollTo({
-          top: 0,
-          behavior: 'smooth'
-        })
-      }
-    }
-
-    lastScrollTop.current = currentScrollTop
-
-    // if (Math.abs(scrollDifference) <= SCROLL_THRESHOLD) return
-
-    // if (
-    //   isScrollingDown &&
-    //   currentScrollTop < offsetTop &&
-    //   currentScrollTop + clientHeight - offsetTop > 100
-    // ) {
-    //   disableScroll.current = true
-
-    //   // scroll to threads
-    //   disableScroll.current = true
-    //   animationControl.start('hidden')
-    //   scroller.current?.scrollTo({
-    //     top: offsetTop,
-    //     behavior: 'smooth'
-    //   })
-
-    //   setTimeout(() => {
-    //     disableScroll.current = false
-    //   }, 1000)
-    // }
-  }, 50)
-
-  const [ref, isInView] = useInView({
-    threshold: 0.1
-  })
-
-  const handleScroll: UIEventHandler<HTMLDivElement> = e => {
-    if (disableScroll.current) {
-      e.preventDefault()
-      return
-    }
-    throttledScrollHandler.run()
+  const disableWheelScrolling = () => {
+    disableWheel.current = true
   }
 
-  useEffect(() => {
-    if (isInView) {
-      animationControl.stop()
-      animationControl.start('onscreen')
-    }
-  }, [isInView])
+  const reenableWheelScrolling = () => {
+    setTimeout(() => {
+      disableWheel.current = false
+    }, 500)
+  }
+
+  const throttledScrollHandler = useThrottleCallback(
+    (e: UIEvent<HTMLDivElement>) => {
+      if (!scroller.current || !activitiesRef.current) {
+        return
+      }
+
+      const { scrollTop: currentScrollTop, clientHeight } = scroller.current
+      const offsetTop = activitiesRef.current.offsetTop
+      const isWheelingDown = currentScrollTop > lastScrollTop.current
+      lastScrollTop.current = currentScrollTop
+
+      if (isWheelingDown) {
+        if (
+          currentScrollTop > offsetTop - clientHeight &&
+          currentScrollTop < offsetTop
+        ) {
+          disableWheelScrolling()
+
+          scroller.current?.scrollTo({
+            top: offsetTop,
+            behavior: 'smooth'
+          })
+
+          // hide the charts
+          animate(
+            MOTION_CARD_SELEDTOR,
+            { opacity: 0 },
+            {
+              ease: 'easeOut',
+              duration: 0.15
+            }
+          ).then(() => {
+            animate(MOTION_CARD_SELEDTOR, { y: 24 })
+          })
+
+          reenableWheelScrolling()
+        }
+      } else {
+        if (currentScrollTop <= offsetTop) {
+          disableWheelScrolling()
+          scroller.current?.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          })
+          reenableWheelScrolling()
+        }
+      }
+    },
+    50,
+    { leading: true }
+  )
+
+  const handleScroll = (e: UIEvent<HTMLDivElement>) => {
+    throttledScrollHandler.run(e)
+  }
+
+  const hidePage = !healthInfo || !data?.me
 
   useEffect(() => {
-    disableScroll.current = false
+    const handleWheel = (e: WheelEvent) => {
+      if (disableWheel.current) {
+        e.preventDefault()
+      }
+    }
+
+    const currentScroller = scroller.current
+    if (currentScroller) {
+      currentScroller.addEventListener('wheel', handleWheel, { passive: false })
+    }
 
     return () => {
-      disableScroll.current = false
+      if (currentScroller) {
+        currentScroller.removeEventListener('wheel', handleWheel)
+      }
     }
-  }, [])
+  }, [hidePage])
 
   const style = isShowDemoBanner
     ? { height: `calc(100vh - ${BANNER_HEIGHT})` }
     : { height: '100vh' }
 
-  if (!healthInfo || !data?.me) return <></>
+  if (hidePage) return <></>
 
   return (
     <ScrollArea style={style} ref={scroller} onScroll={handleScroll}>
@@ -195,49 +215,45 @@ function MainPanel() {
 
       <main className="flex-col items-center justify-center overflow-auto pb-8 pt-16 lg:flex lg:pb-0">
         <div className="mx-auto flex min-h-0 w-full flex-col items-center px-10 lg:max-w-4xl lg:px-0">
-          <motion.div
-            className="flex w-full flex-col items-center gap-6"
-            initial="initial"
-            // whileInView='onscreen'
-            animate={animationControl}
-            transition={{
-              staggerChildren: 0.05
-            }}
-            viewport={{
-              amount: 'some'
-            }}
-            ref={ref}
-          >
-            <motion.div variants={cardVariants}>
-              <Image
-                src={tabbyUrl}
-                alt="logo"
-                width={192}
-                className={cn('mt-4 invert dark:invert-0', {
-                  'mb-4': isChatEnabled,
-                  'mb-2': !isChatEnabled
-                })}
-              />
-            </motion.div>
-            <motion.div variants={cardVariants} className="w-full">
-              {isChatEnabled && (
-                <TextAreaSearch
-                  onSearch={onSearch}
-                  showBetaBadge
-                  autoFocus
-                  loadingWithSpinning
-                  isLoading={isLoading}
-                  cleanAfterSearch={false}
-                  contextInfo={contextInfoData?.contextInfo}
-                  fetchingContextInfo={fetchingContextInfo}
+          <div ref={ref}>
+            <motion.div
+              ref={scope}
+              className="flex w-full flex-col items-center gap-6"
+              initial="initial"
+            >
+              <motion.div className="home-motion-card" variants={cardVariants}>
+                <Image
+                  src={tabbyUrl}
+                  alt="logo"
+                  width={192}
+                  className={cn('mt-4 invert dark:invert-0', {
+                    'mb-4': isChatEnabled,
+                    'mb-2': !isChatEnabled
+                  })}
                 />
-              )}
+              </motion.div>
+              <motion.div
+                className="home-motion-card w-full"
+                variants={cardVariants}
+              >
+                {isChatEnabled && (
+                  <TextAreaSearch
+                    onSearch={onSearch}
+                    showBetaBadge
+                    autoFocus
+                    loadingWithSpinning
+                    isLoading={isLoading}
+                    cleanAfterSearch={false}
+                    contextInfo={contextInfoData?.contextInfo}
+                    fetchingContextInfo={fetchingContextInfo}
+                  />
+                )}
+              </motion.div>
+              <Stats />
             </motion.div>
-            <Stats />
-          </motion.div>
+          </div>
 
           <ThreadFeeds
-            className="pt-6"
             ref={activitiesRef}
             onNavigateToThread={() => {
               if (!scroller.current) return
