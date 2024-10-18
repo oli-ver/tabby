@@ -117,13 +117,13 @@ function MainPanel() {
       if (currentScrollTop <= offsetTop + 200) {
         scroller.current?.scrollTo({
           top: 0,
-          behavior:'smooth'
+          behavior: 'smooth'
         })
       }
     }
 
     lastScrollTop.current = currentScrollTop
-    
+
     // if (Math.abs(scrollDifference) <= SCROLL_THRESHOLD) return
 
     // if (
