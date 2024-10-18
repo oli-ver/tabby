@@ -198,6 +198,11 @@ function ChatRenderer(
     const nextQaPairs = qaPairs.filter(o => o.user.id !== userMessageId)
     setQaPairs(nextQaPairs)
     setInput(userMessage.message)
+    if (userMessage.activeContext) {
+      onNavigateToContext(userMessage.activeContext, {
+        openInEditor: true
+      })
+    }
 
     deleteThreadMessagePair(threadId, qaPair?.user.id, qaPair?.assistant?.id)
   }
@@ -385,10 +390,11 @@ function ChatRenderer(
         message: userMessage.message + selectCodeSnippet,
         // If no id is provided, set a fallback id.
         id: userMessage.id ?? nanoid(),
-        // If a temporary user message draft exists, use its selectContext and activeContext
+        // FIXME: perhaps should use the current active selection
         selectContext: userMessageForEditTemp.current
           ? userMessageForEditTemp.current.selectContext
           : userMessage.selectContext,
+        // todo: use current active selection
         activeContext: userMessageForEditTemp.current
           ? userMessageForEditTemp.current.activeContext
           : userMessage.activeContext
